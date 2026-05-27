@@ -1,110 +1,102 @@
-# 📬 Gmail Cleanup Agent
+# Gmail Cleanup Agent
 
-An AI-powered inbox cleanup tool built with [Claude](https://claude.ai) and the Gmail MCP (Model Context Protocol) integration. It scans your Gmail inbox, uses AI to decide what is clutter and what is worth keeping, shows you the decisions for review, and then moves the selected emails to trash — all without you having to touch a single email manually.
+An AI-powered inbox cleanup tool built with [Claude](https://claude.ai) and the Gmail MCP (Model Context Protocol) integration. It scans your Gmail inbox, classifies each thread as clutter or worth keeping, presents the decisions for review, and moves selected emails to Trash — without manually touching a single message.
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
 ### The Problem
-A busy inbox with 80+ emails per day becomes unmanageable fast. Within a week you can have 500+ unread emails — newsletters, stock tips, social notifications, promotions, automated alerts — burying the things that actually matter.
+
+A high-volume inbox — 80 or more emails per day — becomes unmanageable quickly. Within a week, newsletters, stock tips, social notifications, promotions, and automated alerts bury the messages that actually matter.
 
 ### The Solution
-This agent connects directly to your Gmail account and does the heavy lifting:
 
-1. **Scan** — Claude searches your inbox across multiple categories (promotions, newsletters, social notifications, no-reply senders, updates) and fetches up to 50 threads at a time.
+The agent connects directly to Gmail and handles the entire process:
 
-2. **Analyze** — For each email thread, Claude reads the sender, subject, and preview, then decides:
-   - **Delete** → newsletters, marketing, social alerts, automated notifications, stock spam, old receipts, travel promos
-   - **Keep** → personal emails, emails needing a reply, financial documents, recent receipts, active event confirmations, job applications
+1. **Scan** — Claude searches the inbox across multiple categories (promotions, newsletters, social notifications, no-reply senders, updates) and fetches up to 50 threads per run.
 
-3. **Review** — You see the full list with color-coded decisions (🔴 delete / 🟢 keep). You can flip any individual decision before anything is deleted.
+2. **Classify** — For each thread, Claude reads the sender, subject, and preview, then decides:
+   - **Delete** — newsletters, marketing, social alerts, automated notifications, stock spam, old receipts, travel promos
+   - **Keep** — personal emails, emails requiring action, financial documents, recent receipts, active event confirmations, job application correspondence
 
-4. **Execute** — After you confirm, Claude calls the Gmail API to move every flagged thread to Trash. Nothing is permanently deleted — Gmail keeps Trash for 30 days, so you can recover anything by mistake.
+3. **Review** — A full list of decisions is presented with color-coded indicators. Any individual decision can be overridden before deletion runs.
+
+4. **Execute** — On confirmation, Claude calls the Gmail API to move every flagged thread to Trash. Nothing is permanently deleted — Gmail retains Trash for 30 days.
 
 ---
 
-## 📋 What Gets Deleted (by default)
+## What Gets Deleted
 
 | Category | Examples |
 |---|---|
 | Newsletters | Washington Post, Business Insider, TLDR, Beehiiv |
-| Stock spam | Trading Essentials Hub, Traders Pledge, Analyst Ratings |
+| Stock and trading spam | Trading Essentials Hub, Traders Pledge, Analyst Ratings |
 | Promotions | Expedia, Lyft, REI, Xfinity, Coursera discount emails |
 | Social notifications | LinkedIn profile views, group digests |
 | Automated alerts | No-reply senders, app notifications |
-| Old receipts | DoorDash orders older than 2 weeks |
-| Event digests | Microsoft Reactor |
+| Old receipts | Food delivery orders older than two weeks |
+| Event digests | Meetup group announcements, Microsoft Reactor |
 
-## ✅ What Always Gets Kept
+## What Always Gets Kept
 
 - Personal emails from real people
-- Emails that need a reply or action
-- Financial statements, invoices, tax documents
+- Emails requiring a reply or action
+- Financial statements, invoices, and tax documents
 - Receipts from the last 14 days
 - Active event confirmations and hackathon registrations
 - Job application updates (rejections, interviews, offers)
-- Security alerts from Google
+- Security alerts from Google and financial institutions
 - Home buying, legal, or medical correspondence
 
 ---
 
-## 🛠️ How It Was Built
+## How It Was Built
 
 This project was built interactively inside [Claude.ai](https://claude.ai) using:
 
-- **Claude Sonnet** — the AI model that reads and classifies emails
-- **Gmail MCP** — a Model Context Protocol integration that gives Claude direct (read + write) access to Gmail
-- **Gmail API label method** — moving threads to Trash is done by adding the `TRASH` label to a thread via `label_thread`
+- **Claude Sonnet** — reads and classifies each email thread
+- **Gmail MCP** — a Model Context Protocol integration that gives Claude secure, scoped access to Gmail
+- **Gmail API label method** — deletion is performed by applying the `TRASH` label via `label_thread`
 
-No external servers, no OAuth dance, no local code to run. Claude handles everything natively through the MCP connection.
+No external servers, no local code to run. Claude handles everything natively through the MCP connection.
 
 ---
 
-## 🚀 How to Use It
+## How to Use It
 
 ### Prerequisites
+
 - A [Claude.ai](https://claude.ai) account (Pro or Team)
-- Gmail connected as an MCP integration in Claude
+- Gmail connected as an MCP integration in Claude Settings
 
 ### Steps
 
-1. Open Claude.ai and make sure Gmail is connected under **Integrations**
-2. Start a new conversation and paste this prompt:
+1. Open Claude.ai and confirm Gmail is connected under Integrations.
+2. Start a new conversation and use the prompt in `prompt.md`.
+3. Review the list Claude produces.
+4. Confirm deletion or adjust individual decisions first.
+5. Repeat the scan as needed to work through a larger backlog.
 
-```
-Scan my Gmail inbox for clutter. Search across promotions, newsletters, social notifications, no-reply senders, and general inbox. For each thread decide whether to delete or keep it using these rules:
-
-DELETE: newsletters, marketing/promo emails, social notifications, automated alerts, stock spam, shipping confirmations older than 2 weeks, any bulk/mass email.
-
-KEEP: personal emails, anything needing a reply, financial or legal docs, receipts from the last 14 days, active event confirmations, job application emails.
-
-Show me the full list of decisions. I will review and then tell you to confirm deletion.
-```
-
-3. Review the list Claude produces
-4. Say **"go ahead and delete"** or adjust any decisions first
-5. Repeat the scan as many times as needed to work through your backlog
-
-### For a large backlog
-Each scan processes ~50 threads. If you have 500+ emails, run the agent 10+ times in the same conversation. Claude remembers what it has already processed in the session.
+For a backlog of 500 or more emails, each scan handles around 50 threads. Running the agent 10 times clears the full backlog in a single session.
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 gmail-cleanup-agent/
-├── README.md               # This file
-├── cleanup_agent.py        # Standalone Python version (uses Gmail API directly)
-└── prompt.md               # The exact prompt used with Claude
+├── README.md               This file
+├── ARCHITECTURE.md         System design and component breakdown
+├── prompt.md               Prompt templates for use with Claude
+└── cleanup_agent.py        Standalone Python version using the Gmail API directly
 ```
 
 ---
 
-## 🐍 Standalone Python Version
+## Standalone Python Version
 
-If you want to run this without Claude, `cleanup_agent.py` uses the Gmail API directly with rule-based filtering (no AI, but fast and free).
+`cleanup_agent.py` uses the Gmail API directly with rule-based filtering. No Claude required — useful for scheduled or automated runs.
 
 **Setup:**
 ```bash
@@ -112,40 +104,40 @@ pip install google-auth google-auth-oauthlib google-api-python-client
 python cleanup_agent.py
 ```
 
-You will need a `credentials.json` file from [Google Cloud Console](https://console.cloud.google.com) with the Gmail API enabled.
+A `credentials.json` file is required from [Google Cloud Console](https://console.cloud.google.com) with the Gmail API enabled.
 
 ---
 
-## 📊 Results From Our First Session
+## Results from Initial Session
 
 | Round | Scanned | Deleted | Kept |
 |---|---|---|---|
 | Round 1 | 50 | 42 | 8 |
 | Round 2 | 48 | 32 | 16 |
-| **Total** | **98** | **74** | **24** |
+| Total | 98 | 74 | 24 |
 
-Biggest sources of clutter: stock trading newsletters, Bullish Academy emails, Business Insider/TLDR daily digests, and travel/ride promo emails.
-
----
-
-## ⚠️ Safety Notes
-
-- All deletions go to **Trash**, not permanent delete. Gmail auto-purges Trash after 30 days.
-- The agent never deletes emails marked as important by Gmail if they are personal or financial.
-- You can always recover a trashed email within 30 days from the Gmail Trash folder.
-- Revoke the Gmail MCP integration anytime from Claude Settings → Integrations.
+Primary sources of clutter: stock trading newsletters, daily news digests (Business Insider, TLDR), travel and ride-share promos, and financial marketing emails.
 
 ---
 
-## 🔮 Next Steps
+## Safety Notes
 
-- [ ] Build a Google Apps Script version that runs on a daily schedule automatically
-- [ ] Add sender-based memory (auto-delete from senders you always trash)
-- [ ] Unsubscribe links — not just delete, but actually unsubscribe from newsletters
-- [ ] Weekly summary email of what was cleaned
+- All deletions go to Trash, not permanent delete. Gmail auto-purges Trash after 30 days.
+- The agent defaults to keeping any email where the decision is ambiguous.
+- Trashed emails can be recovered within 30 days from the Gmail Trash folder.
+- The Gmail MCP integration can be revoked at any time from Claude Settings under Integrations.
 
 ---
 
-## 📄 License
+## Planned Improvements
 
-MIT — use freely, modify as you like.
+- Google Apps Script version that runs on a daily schedule without manual intervention
+- Sender-based memory to auto-delete from addresses consistently marked as clutter
+- Unsubscribe automation — not just delete, but remove from mailing lists
+- Weekly digest summarizing what was cleaned
+
+---
+
+## License
+
+MIT
