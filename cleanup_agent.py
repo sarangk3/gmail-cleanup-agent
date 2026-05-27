@@ -1,22 +1,24 @@
 """
 Gmail Cleanup Agent — Standalone Python Version
-Uses the Gmail API directly with rule-based filtering (no AI required).
+
+Uses the Gmail API directly with rule-based filtering.
+No AI or Claude dependency required.
 
 Setup:
     pip install google-auth google-auth-oauthlib google-api-python-client
-    
-    Then get credentials.json from Google Cloud Console:
-    1. Go to https://console.cloud.google.com
-    2. Create a project, enable Gmail API
-    3. Create OAuth 2.0 credentials (Desktop app)
-    4. Download as credentials.json and place in this directory
 
-Run:
+    Obtain credentials.json from Google Cloud Console:
+    1. Go to https://console.cloud.google.com
+    2. Create a project and enable the Gmail API
+    3. Create OAuth 2.0 credentials (Desktop application type)
+    4. Download the credentials file and save it as credentials.json
+       in the same directory as this script
+
+Usage:
     python cleanup_agent.py
 """
 
 import os
-import json
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -24,38 +26,56 @@ from googleapiclient.discovery import build
 
 SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
 
-# ── Rules ─────────────────────────────────────────────────────────────────────
-
+# Senders that consistently produce clutter.
+# Add or remove domains as needed.
 DELETE_SENDERS = [
-    # Stock/trading spam
-    "tradingessentialshub.com", "traderspledge.com", "stockmarketnewswire.com",
-    "analystratings.net", "thetradingpub.com",
-    # Travel promos
-    "expedia.com", "lyftmail.com", "omanair.com", "contiki.com", "dollarflightclub.com",
+    # Stock and trading spam
+    "tradingessentialshub.com",
+    "traderspledge.com",
+    "stockmarketnewswire.com",
+    "analystratings.net",
+    "thetradingpub.com",
+    # Travel promotions
+    "expedia.com",
+    "lyftmail.com",
+    "omanair.com",
+    "contiki.com",
+    "dollarflightclub.com",
     # Deal newsletters
-    "emailbenefithub.com", "spartan.com", "preparedhero.com",
-    # Finance marketing
-    "bullish-academy.com", "kjbm.bullish-academy.com",
+    "emailbenefithub.com",
+    "spartan.com",
+    "preparedhero.com",
+    # Financial marketing
+    "bullish-academy.com",
     # News digests
-    "mail.beehiiv.com", "email.businessinsider.com", "tldrnewsletter.com",
-    "fourhourbody.com", "substack.com",
+    "mail.beehiiv.com",
+    "email.businessinsider.com",
+    "tldrnewsletter.com",
 ]
 
+# Subject line keywords that indicate promotional or low-value email.
 DELETE_SUBJECT_KEYWORDS = [
-    "unsubscribe", "% off", "deal", "discount", "limited time", "flash sale",
-    "earn cash back", "referral", "newsletter", "weekly digest", "daily digest",
-    "you're getting noticed", "viewed your profile", "job alert",
-    "free audiobook", "upgrade now", "your reward",
+    "unsubscribe",
+    "% off",
+    "deal",
+    "discount",
+    "limited time",
+    "flash sale",
+    "earn cash back",
+    "referral",
+    "newsletter",
+    "weekly digest",
+    "daily digest",
+    "viewed your profile",
+    "job alert",
+    "free audiobook",
+    "upgrade now",
+    "your reward",
 ]
 
-KEEP_SENDERS = [
-    "google.com", "accounts.google.com", "chase.com", "fidelity.com",
-    "schwab.com", "irs.gov", "linkedin.com",  # keep actual messages not digests
-]
-
-# ── Auth ──────────────────────────────────────────────────────────────────────
 
 def get_service():
+    """Authenticate and return a Gmail API service instance."""
     creds = None
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
@@ -69,10 +89,16 @@ def get_service():
             token.write(creds.to_json())
     return build("gmail", "v1", credentials=creds)
 
-# ── Decision logic ────────────────────────────────────────────────────────────
 
-def should_delete(msg):
-    headers = {h["name"].lower(): h["value"] for h in msg["payload"].get("headers", [])}
+def should_delete(message):
+    """
+    Return a (bool, reason) tuple indicating whether the message should be deleted.
+    Defaults to keep when no delete signal is matched.
+    """
+    headers = {
+        h["name"].lower(): h["value"]
+        for h in message["payload"].get("headers", [])
+    }
     sender = headers.get("from", "").lower()
     subject = headers.get("subject", "").lower()
 
@@ -80,13 +106,12 @@ def should_delete(msg):
         if domain in sender:
             return True, f"sender matches delete list ({domain})"
 
-    for kw in DELETE_SUBJECT_KEYWORDS:
-        if kw in subject:
-            return True, f"subject contains '{kw}'"
+    for keyword in DELETE_SUBJECT_KEYWORDS:
+        if keyword in subject:
+            return True, f"subject contains '{keyword}'"
 
-    return False, "no match — keeping"
+    return False, "no delete signal matched"
 
-# ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
     service = get_service()
@@ -99,43 +124,51 @@ def main():
         "noreply OR no-reply in:inbox",
     ]
 
-    thread_ids_to_delete = []
+    threads_to_delete = []
     seen = set()
 
     for query in queries:
-        result = service.users().threads().list(userId="me", q=query, maxResults=50).execute()
+        result = service.users().threads().list(
+            userId="me", q=query, maxResults=50
+        ).execute()
         threads = result.get("threads", [])
-        print(f"Query '{query}': {len(threads)} threads")
+        print(f"Query: '{query}' — {len(threads)} threads returned")
 
-        for t in threads:
-            if t["id"] in seen:
+        for thread in threads:
+            if thread["id"] in seen:
                 continue
-            seen.add(t["id"])
+            seen.add(thread["id"])
 
-            thread = service.users().threads().get(userId="me", id=t["id"], format="metadata").execute()
-            msg = thread["messages"][0]
-            delete, reason = should_delete(msg)
+            full_thread = service.users().threads().get(
+                userId="me", id=thread["id"], format="metadata"
+            ).execute()
+            message = full_thread["messages"][0]
+            delete, reason = should_delete(message)
 
-            headers = {h["name"].lower(): h["value"] for h in msg["payload"].get("headers", [])}
+            headers = {
+                h["name"].lower(): h["value"]
+                for h in message["payload"].get("headers", [])
+            }
             subject = headers.get("subject", "(no subject)")[:60]
             sender = headers.get("from", "")[:40]
-
             status = "DELETE" if delete else "KEEP  "
-            print(f"  [{status}] {sender:<40} | {subject} ({reason})")
+
+            print(f"  [{status}]  {sender:<40}  {subject}  ({reason})")
 
             if delete:
-                thread_ids_to_delete.append(t["id"])
+                threads_to_delete.append(thread["id"])
 
-    print(f"\n{'─'*60}")
-    print(f"Found {len(thread_ids_to_delete)} threads to delete out of {len(seen)} scanned.")
-    confirm = input("Type 'yes' to move them all to Trash: ").strip().lower()
+    print(f"\n{'-' * 60}")
+    print(f"Threads to delete: {len(threads_to_delete)} of {len(seen)} scanned")
+    confirm = input("Type 'yes' to move all flagged threads to Trash: ").strip().lower()
 
     if confirm == "yes":
-        for tid in thread_ids_to_delete:
-            service.users().threads().trash(userId="me", id=tid).execute()
-        print(f"✓ {len(thread_ids_to_delete)} threads moved to Trash.")
+        for thread_id in threads_to_delete:
+            service.users().threads().trash(userId="me", id=thread_id).execute()
+        print(f"Done. {len(threads_to_delete)} threads moved to Trash.")
     else:
-        print("Cancelled — nothing deleted.")
+        print("Cancelled. No changes made.")
+
 
 if __name__ == "__main__":
     main()
