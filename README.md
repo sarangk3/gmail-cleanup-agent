@@ -34,7 +34,7 @@ This agent connects directly to your Gmail account and does the heavy lifting:
 | Social notifications | LinkedIn profile views, group digests |
 | Automated alerts | No-reply senders, app notifications |
 | Old receipts | DoorDash orders older than 2 weeks |
-| Event digests | Meetup group announcements, Microsoft Reactor |
+| Event digests | Microsoft Reactor |
 
 ## ✅ What Always Gets Kept
 
