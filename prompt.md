@@ -1,13 +1,13 @@
-# Gmail Cleanup Agent — Claude Prompt
+# Claude Prompt Guide
 
-Use this prompt directly in Claude.ai with Gmail MCP connected.
+Use these prompts directly in Claude.ai with the Gmail MCP integration connected.
 
 ---
 
-## Scan & Review Prompt
+## Scan and Review Prompt
 
 ```
-Scan my Gmail inbox for clutter. Search across these categories using Gmail search:
+Scan my Gmail inbox for clutter. Search across the following categories:
 - in:inbox
 - category:promotions
 - unsubscribe
@@ -15,26 +15,27 @@ Scan my Gmail inbox for clutter. Search across these categories using Gmail sear
 - noreply OR no-reply
 - category:updates
 
-For each thread, decide DELETE or KEEP:
+For each thread, assign a recommendation of DELETE or KEEP using these rules:
 
-DELETE: newsletters, marketing/promo emails, social notifications (LinkedIn, Facebook, Twitter),
-automated alerts, stock/trading spam, shipping confirmations older than 2 weeks,
-travel promos, ride-share discounts, airline offers, course discount emails,
-daily news digests, substack newsletters, app notifications, referral emails.
+DELETE: newsletters, marketing and promotional emails, social notifications (LinkedIn,
+Facebook, Twitter), automated alerts, stock and trading spam, shipping confirmations
+older than two weeks, travel and ride-share promos, course discount emails, daily
+news digests, app notifications, and referral emails.
 
-KEEP: personal emails from real people, emails needing a reply or action,
-financial documents (bank statements, invoices, tax docs),
-receipts from the last 14 days, active event confirmations, job application emails
-(offers, rejections, interviews), security alerts, home buying / legal / medical emails.
+KEEP: personal emails from real people, emails requiring a reply or action, financial
+documents (bank statements, invoices, tax documents), receipts from the last 14 days,
+active event confirmations, job application updates (offers, rejections, interviews),
+security alerts, and home buying, legal, or medical correspondence.
 
-Show me the full list with sender, subject, and your reason. I will review and confirm.
+Present the full list with sender, subject, and your reason for each decision.
+I will review and confirm before anything is deleted.
 ```
 
 ---
 
-## Confirm Deletion Prompt
+## Confirm Deletion
 
-After reviewing the list, say:
+After reviewing the list:
 
 ```
 Go ahead and delete everything marked for deletion.
@@ -42,9 +43,28 @@ Go ahead and delete everything marked for deletion.
 
 ---
 
+## Useful Variations
+
+**To review only the delete pile:**
+```
+Show me only the emails you flagged for deletion.
+```
+
+**To override a sender in bulk:**
+```
+Keep everything from [sender name or domain].
+```
+
+**To skip the review step entirely:**
+```
+Scan my inbox and delete all clutter automatically without showing me the list first.
+```
+
+---
+
 ## Tips
 
-- Run the scan multiple times to work through a large backlog (each scan handles ~50 emails)
-- You can ask Claude to "only show me the delete pile" to review faster
-- Say "keep everything from [sender]" to override in bulk
-- After a few sessions, the pattern becomes predictable and you can switch to auto-delete mode
+- Each scan processes approximately 50 threads. For a large backlog, run the scan multiple times in the same conversation.
+- Decisions can be overridden individually during the review step before confirming deletion.
+- After a few sessions, the pattern becomes predictable. At that point, switching to the auto-delete mode (no review) saves additional time.
+- For fully automated daily cleanup, see `cleanup_agent.py` which runs independently of Claude using Gmail API rules.
